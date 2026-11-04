@@ -431,13 +431,14 @@ export function repairDisplacedToolResults<T extends ToolCallBody>(body: T): T {
       continue;
     }
     if (!turnIds || turnIds.size === 0) continue;
+    const currentTurnIds = turnIds;
 
     if (msg.role === "assistant") {
       // A new assistant turn (without tool calls) ends the previous turn's window.
       turnIds = null;
       continue;
     }
-    if (respondedToolIds(msg).some((id) => turnIds.has(id))) {
+    if (respondedToolIds(msg).some((id) => currentTurnIds.has(id))) {
       // Contiguous member of the run — still fine where it is.
       continue;
     }
@@ -448,7 +449,7 @@ export function repairDisplacedToolResults<T extends ToolCallBody>(body: T): T {
     for (let j = i + 1; j < messages.length; j++) {
       const later = messages[j];
       if (later.role === "assistant") break;
-      const resolved = respondedToolIds(later).filter((id) => turnIds.has(id));
+      const resolved = respondedToolIds(later).filter((id) => currentTurnIds.has(id));
       if (resolved.length > 0) {
         ahead.push(j);
         for (const id of resolved) turnIds.delete(id);
