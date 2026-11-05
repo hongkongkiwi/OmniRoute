@@ -1,5 +1,6 @@
 import { isNoAuthProviderKey } from "@/shared/utils/noAuthProviders";
 import { isOpencodeFreeTierRefusalForProvider } from "../../executors/opencodeGeoBlock.ts";
+import { isMusePolicyRefusal } from "../../services/musePolicyRefusal.ts";
 
 /**
  * True when a 401/403 from `provider` cannot be cured by refreshing credentials.
@@ -16,10 +17,15 @@ export async function shouldSkipCredentialRefresh(
   response: Response
 ): Promise<boolean> {
   if (isNoAuthProviderKey(provider)) return true;
-  if (!provider || !provider.toLowerCase().startsWith("opencode")) return false;
+  if (!provider) return false;
+  if (provider.toLowerCase() !== "muse-code" && !provider.toLowerCase().startsWith("opencode"))
+    return false;
   const bodyText = await response
     .clone()
     .text()
     .catch(() => null);
+  if (provider.toLowerCase() === "muse-code" && isMusePolicyRefusal(response.status, bodyText))
+    return true;
+  if (!provider.toLowerCase().startsWith("opencode")) return false;
   return isOpencodeFreeTierRefusalForProvider(provider, response.status, bodyText);
 }
